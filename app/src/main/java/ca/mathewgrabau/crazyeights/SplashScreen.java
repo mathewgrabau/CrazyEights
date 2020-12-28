@@ -1,6 +1,7 @@
 package ca.mathewgrabau.crazyeights;
 
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
@@ -8,6 +9,7 @@ import android.view.MotionEvent;
 import android.view.View;
 
 public class SplashScreen extends View {
+    private Context context;    // Needed launch the next screen
     private Bitmap titleGraphic;
     private Bitmap playButtonUp;
     private Bitmap playButtonDown;
@@ -19,6 +21,8 @@ public class SplashScreen extends View {
 
     public SplashScreen(Context context) {
         super(context);
+
+        this.context = context;
 
         // Init/load the bitmap (image) for the screen
         titleGraphic = BitmapFactory.decodeResource(getResources(), R.drawable.splash_graphic);
@@ -77,8 +81,9 @@ public class SplashScreen extends View {
 
             case MotionEvent.ACTION_UP:
                 if (playButtonPressed) {
-                    // Launch to main game screen
-
+                    // Launch to main game screen, issuing the new intent
+                    Intent mainGameIntent = new Intent(context, CrazyEight.class);
+                    context.startActivity(mainGameIntent);
                 }
 
                 // Remove flag regardless, if no touch event then it can't be pressed at all.
