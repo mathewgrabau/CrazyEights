@@ -12,8 +12,14 @@ public class Card {
     private Bitmap bitmap;
     private int scoreValue;
 
+    /**
+     * Constructor for the card.
+     * @param newId The identifier (resource) that is assigned to the card.
+     */
     public Card(int newId) {
         id = newId;
+        suit = Math.round((id / 100) * 100);
+        rank = id - suit;
     }
 
     /**
@@ -39,4 +45,21 @@ public class Card {
     public int getId() {
         return id;
     }
+
+    /**
+     * Gets the suit that was assigned to the card.
+     * @return
+     */
+    public int getSuit() {
+        return suit;
+    }
+
+    /**
+     * Gets the assigned rank for the card.
+     * @return
+     */
+    public int getRank() {
+        return rank;
+    }
+
 }

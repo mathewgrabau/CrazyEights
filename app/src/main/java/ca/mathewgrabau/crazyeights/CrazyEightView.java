@@ -6,6 +6,7 @@ import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.view.View;
 
 import java.lang.reflect.Array;
@@ -36,11 +37,26 @@ public class CrazyEightView extends View {
     private Bitmap cardBack;
     private Paint paint;
 
+    /**
+     * Indicates if the player is currently the
+     */
+    private boolean isPlayerTurn;
+
+    private int movingIndex;
+    private int movingX;
+    private int movingY;
+
+    private int validSuit;
+    private int validRank;
+
+    private ComputerPlayer computerPlayer;
+
     public CrazyEightView(Context context) {
         super(context);
         this.context = context;
         scale = context.getResources().getDisplayMetrics().density;
         paint = new Paint();
+        computerPlayer = new ComputerPlayer();
     }
 
     @Override
@@ -50,6 +66,34 @@ public class CrazyEightView extends View {
         // Render computer cards (just the backs of course)
         for (int i = 0; i < computerHand.size(); ++i) {
             canvas.drawBitmap(cardBack, i * (scale*5), paint.getTextSize()+(50 * scale),
+                    null);
+        }
+
+        // Render player hand
+        for (int i = 0; i < playerHand.size(); ++i) {
+            if (i == movingIndex) {
+                // Animating the card that we are moving
+                canvas.drawBitmap(playerHand.get(i).getBitmap(),
+                        movingX, movingY, null);
+            } else {
+                // Draw the stationary card
+                canvas.drawBitmap(playerHand.get(i).getBitmap(),
+                        i * (scaledCardWidth + 5),
+                        screenHeight - scaledCardHeight - paint.getTextSize() - (50 * scale),
+                        null);
+            }
+        }
+
+        // Drawing the draw pile (rendering a single card for it)
+        float cardBackLeft = (screenWidth / 2) - (cardBack.getWidth() - 10);
+        float cardBackTop = (screenHeight / 2) - (cardBack.getHeight()  / 2);
+        canvas.drawBitmap(cardBack, cardBackLeft, cardBackTop, null);
+
+        // Show the discard pile (rendering the first card in it)
+        if (!discardPile.isEmpty()) {
+            canvas.drawBitmap(discardPile.get(0).getBitmap(),
+                    (screenWidth / 2) + 10,
+                    (screenHeight / 2) - (cardBack.getHeight() / 2),
                     null);
         }
     }
@@ -63,6 +107,9 @@ public class CrazyEightView extends View {
         // Okay location for calling because this invoked only once (due to the settings applied).
         initializeDeck();
         dealCards();
+        drawCard(discardPile);
+        validSuit = discardPile.get(0).getSuit();
+        validRank = discardPile.get(0).getRank();
 
         scaledCardWidth = (int)(screenWidth / 8);
         scaledCardHeight = (int)(scaledCardWidth * 1.28);
@@ -71,6 +118,12 @@ public class CrazyEightView extends View {
         Bitmap tempBitmap = BitmapFactory.decodeResource(context.getResources(),
                 R.drawable.card_back);
         cardBack = Bitmap.createScaledBitmap(tempBitmap, scaledCardWidth, scaledCardHeight, false);
+
+        // Determine who is playing now
+        isPlayerTurn = new Random().nextBoolean();
+        if (!isPlayerTurn) {
+            computerPlay();
+        }
     }
 
     /**
@@ -108,6 +161,57 @@ public class CrazyEightView extends View {
         }
     }
 
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        final int action = event.getAction();
+        final int eventX = (int)event.getX();
+        final int eventY = (int)event.getY();
+
+        switch (action) {
+            case MotionEvent.ACTION_DOWN:
+                if (isPlayerTurn) {
+                    // Test which card is being selected from the list of cards
+                    for (int i = 0; i < 7; ++i) {
+                        if (eventX > i * (scaledCardWidth + 5) && eventX < i * (scaledCardWidth + 5) + scaledCardWidth &&
+                            eventY > screenHeight - scaledCardHeight- paint.getTextSize() - (50 * scale)) {
+                            movingIndex = i;
+                            movingX = eventX - (int)(30 * scale);
+                            movingY = eventY - (int)(70 * scale);
+                        }
+                    }
+                }
+                break;
+
+            case MotionEvent.ACTION_MOVE:
+                // Update the location for the card.
+                movingX = eventX - (int)(30 * scale);
+                movingY = eventY - (int)(70 * scale);
+                break;
+
+            case MotionEvent.ACTION_UP:
+                if (movingIndex > -1 &&
+                        eventX > (screenWidth / 2) - (100 * scale) &&
+                        eventX < (screenWidth / 2) + (100 * scale) &&
+                        eventY > (screenHeight / 2) - (100 * scale) &&
+                        eventY < (screenHeight / 2) + (100 * scale) &&
+                        (playerHand.get(movingIndex).getRank() == 8 ||
+                                playerHand.get(movingIndex).getRank() == validRank ||
+                                playerHand.get(movingIndex).getSuit() == validSuit)) {
+                    validRank = playerHand.get(movingIndex).getRank();
+                    validSuit = playerHand.get(movingIndex).getSuit();
+                    discardPile.add(0, playerHand.get(movingIndex));
+                    playerHand.remove(movingIndex);
+                }
+
+                // Cancel the move card action/event
+                movingIndex = -1;
+                break;
+        }
+
+        invalidate();
+        return true;
+    }
+
     /**
      * Deals cards into the hands (collections) for both the player and the computer.
      */
@@ -132,6 +236,19 @@ public class CrazyEightView extends View {
 
             // After getting the discarded cards back into the deck, shuffle them.
             Collections.shuffle(deck, new Random());
+        }
+    }
+
+    /**
+     * Execute the computer's turn.
+     */
+    private void computerPlay() {
+        int tempPlay = 0;
+        while (tempPlay == 0) {
+            tempPlay = computerPlayer.playCard(computerHand, validSuit, validRank);
+            if (tempPlay == 0) {
+                drawCard(computerHand);
+            }
         }
     }
 }
