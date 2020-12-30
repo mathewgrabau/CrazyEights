@@ -12,6 +12,17 @@ public class Card {
     private Bitmap bitmap;
     private int scoreValue;
 
+    public static final int SUIT_DIAMONDS = 100;
+    public static final int SUIT_CLUBS = 200;
+    public static final int SUIT_HEARTS = 300;
+    public static final int SUIT_SPADES = 400;
+
+    /**
+     * Used to scale the values for the suits - they start at this. Can be used to extract the
+     * value as needed.
+     */
+    public static final int SUIT_SCALING = 100;
+
     /**
      * Constructor for the card.
      * @param newId The identifier (resource) that is assigned to the card.
@@ -20,6 +31,16 @@ public class Card {
         id = newId;
         suit = Math.round((id / 100) * 100);
         rank = id - suit;
+
+        if (rank == 8) {
+            scoreValue = 50;
+        } else if (rank == 14) {
+            scoreValue = 1;
+        } else if (rank > 9 && rank < 14) {
+            scoreValue = 10;
+        } else {
+            scoreValue = rank;
+        }
     }
 
     /**
@@ -62,4 +83,11 @@ public class Card {
         return rank;
     }
 
+    /**
+     * Gets the score value for the card.
+     * @return
+     */
+    public int getScoreValue() {
+        return scoreValue;
+    }
 }
